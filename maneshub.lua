@@ -11,7 +11,7 @@ local player = Players.LocalPlayer
 -- WHITELIST
 -- ==================
 local whitelist = {
-    -- add user IDs here
+    8891263921
 }
 
 local function isWhitelisted()
