@@ -11,7 +11,8 @@ local player = Players.LocalPlayer
 -- WHITELIST
 -- ==================
 local whitelist = {
-    8891263921
+    10429099415,
+    8891263921,
 }
 
 local function isWhitelisted()
@@ -693,6 +694,116 @@ makeToggle(deadlyTab, "Glitch blocks", 6, function(state)
     end)
 end)
 
+
+makeDivider(deadlyTab, 7)
+makeLabel(deadlyTab, "server crash", 8)
+
+local shutdownRunning = false
+makeToggle(deadlyTab, "Shutdown Server (keep clicking screen)", 9, function(state)
+    shutdownRunning = state
+    if not state then return end
+    task.spawn(function()
+
+        -- helper: find a tool by name anywhere in backpack or character
+        local function findTool(name)
+            for _, v in player.Backpack:GetChildren() do
+                if v:IsA("Tool") and v.Name == name then return v end
+            end
+            if player.Character then
+                for _, v in player.Character:GetChildren() do
+                    if v:IsA("Tool") and v.Name == name then return v end
+                end
+            end
+            return nil
+        end
+
+        -- helper: equip a tool (move to character)
+        local function equipTool(tool)
+            pcall(function()
+                if player.Character then
+                    tool.Parent = player.Character
+                end
+            end)
+            task.wait(0.3)
+        end
+
+        -- helper: unequip all tools back to backpack
+        local function unequipAll()
+            if not player.Character then return end
+            for _, v in player.Character:GetChildren() do
+                if v:IsA("Tool") then
+                    pcall(function() v.Parent = player.Backpack end)
+                end
+            end
+            task.wait(0.2)
+        end
+
+        -- STEP 1: equip Arkenstone (enlighten)
+        local arken = findTool("The Arkenstone")
+        if arken then equipTool(arken) end
+
+        -- STEP 2: gear me the sword
+        sayInChat(";gear me 261439002.1")
+        task.wait(2.5)
+
+        -- STEP 3: re-equip Arkenstone (not the gear)
+        unequipAll()
+        arken = findTool("The Arkenstone")
+        if arken then equipTool(arken) end
+
+        -- STEP 4: bring a
+        sayInChat(";bring a")
+        task.wait(1.5)
+
+        -- STEP 5: find the gear tool and equip it
+        local gearTool = nil
+        for attempt = 1, 20 do
+            for _, v in player.Backpack:GetChildren() do
+                if v:IsA("Tool") and v.Name ~= "The Arkenstone" then
+                    gearTool = v
+                    break
+                end
+            end
+            if gearTool then break end
+            task.wait(0.3)
+        end
+
+        if gearTool then
+            unequipAll()
+            equipTool(gearTool)
+        end
+
+        -- STEP 6: spam mouse clicks while player clicks on screen
+        -- runs for 5 seconds so the player can spam click their screen
+        local clickEnd = tick() + 5
+        task.spawn(function()
+            while shutdownRunning and tick() < clickEnd do
+                pcall(function()
+                    local vip = game:GetService("VirtualInputManager")
+                    vip:SendMouseButtonEvent(mouse.X, mouse.Y, 0, true, game, 0)
+                    task.wait(0.05)
+                    vip:SendMouseButtonEvent(mouse.X, mouse.Y, 0, false, game, 0)
+                end)
+                task.wait(0.05)
+            end
+        end)
+        task.wait(5)
+
+        -- STEP 7: re-equip Arkenstone
+        unequipAll()
+        arken = findTool("The Arkenstone")
+        if arken then equipTool(arken) end
+
+        -- STEP 8: ;clone a as many times as possible
+        if shutdownRunning then
+            for i = 1, 50 do
+                if not shutdownRunning then break end
+                sayInChat(";clone a")
+                task.wait(0.1)
+            end
+        end
+    end)
+end)
 
 -- ==================
 -- BUILD TAB
@@ -1976,6 +2087,94 @@ makeToggle(abuseTab, "Full Abuse (toggle)", 5, function(state)
         end
     end)
 end)
+
+-- ==================
+-- BOOMBOX TAB
+-- ==================
+local boomboxTab = createTab("Boombox")
+
+makeLabel(boomboxTab, "boombox ids – click copy to clipboard", 1)
+makeDivider(boomboxTab, 2)
+
+local boomboxSongs = {
+    { id = "107793153086436", name = "too manny neck hurts" },
+    { id = "71105881541052",  name = "WONDER WHY THEY HATE ON ME" },
+    { id = "79636472181684",  name = "ISHOWSPEED X CENAT (patched)" },
+    { id = "121777162963537", name = "MICHAEL JACKSON" },
+    { id = "117180080592097", name = "crazy story" },
+    { id = "79408468739332",  name = "SHAWTY PIMP" },
+    { id = "87868664857813",  name = "WHOLE LOTTA SWAG" },
+    { id = "116039470543327", name = "MISERY GAY VERSION" },
+    { id = "102037782172556", name = "UHH UHH - YUKIE1" },
+    { id = "80652856472869",  name = "IKONIK OR SMTH" },
+    { id = "121605954509643", name = "TUFF SONG" },
+    { id = "138323881451411", name = "good chill song" },
+    { id = "115520764429413", name = "wemmbu song" },
+    { id = "99523952265756",  name = "i forgot" },
+}
+
+local boomboxStatus = makeLabel(boomboxTab, "", 3)
+boomboxStatus.TextColor3 = Color3.fromRGB(80, 200, 120)
+boomboxStatus.LayoutOrder = 3
+
+for i, song in ipairs(boomboxSongs) do
+    local order = 3 + i
+
+    local row = Instance.new("Frame", boomboxTab)
+    row.Size = UDim2.new(1, 0, 0, 34)
+    row.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+    row.BorderSizePixel = 0
+    row.LayoutOrder = order
+    row.ZIndex = 7
+    Instance.new("UICorner", row).CornerRadius = UDim.new(0, 7)
+    local rowStroke = Instance.new("UIStroke", row)
+    rowStroke.Color = Color3.fromRGB(40, 40, 40)
+    rowStroke.Thickness = 1
+
+    -- Song name label
+    local nameLbl = Instance.new("TextLabel", row)
+    nameLbl.Size = UDim2.new(1, -80, 1, 0)
+    nameLbl.Position = UDim2.new(0, 10, 0, 0)
+    nameLbl.BackgroundTransparency = 1
+    nameLbl.Font = Enum.Font.Gotham
+    nameLbl.TextSize = 10
+    nameLbl.TextColor3 = Color3.fromRGB(190, 190, 190)
+    nameLbl.Text = song.name
+    nameLbl.TextXAlignment = Enum.TextXAlignment.Left
+    nameLbl.TextTruncate = Enum.TextTruncate.AtEnd
+    nameLbl.ZIndex = 8
+
+    -- Copy button
+    local copyBtn = Instance.new("TextButton", row)
+    copyBtn.Size = UDim2.new(0, 60, 0, 22)
+    copyBtn.Position = UDim2.new(1, -68, 0.5, -11)
+    copyBtn.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+    copyBtn.BorderSizePixel = 0
+    copyBtn.Font = Enum.Font.GothamBold
+    copyBtn.TextSize = 10
+    copyBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
+    copyBtn.Text = "Copy"
+    copyBtn.ZIndex = 9
+    Instance.new("UICorner", copyBtn).CornerRadius = UDim.new(0, 6)
+    local cbStroke = Instance.new("UIStroke", copyBtn)
+    cbStroke.Color = Color3.fromRGB(60, 60, 60)
+    cbStroke.Thickness = 1
+
+    local capturedId   = song.id
+    local capturedName = song.name
+    copyBtn.MouseButton1Click:Connect(function()
+        pcall(function()
+            setclipboard(capturedId)
+        end)
+        boomboxStatus.Text = "copied: " .. capturedId
+        copyBtn.Text = "✓"
+        copyBtn.TextColor3 = Color3.fromRGB(80, 200, 120)
+        task.delay(1.5, function()
+            copyBtn.Text = "Copy"
+            copyBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
+        end)
+    end)
+end
 
 -- ==================
 -- MIC TAB
