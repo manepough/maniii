@@ -781,8 +781,13 @@ makeToggle(deadlyTab, "Shutdown Server (keep clicking screen)", 9, function(stat
         end
         task.wait(0.3)
 
-        -- STEP 6: give player 2s to click
-        task.wait(2)
+        -- STEP 6: activate the gear skill (Ice Stalag circle button)
+        if gearTool then
+            pcall(function()
+                gearTool:Activate()
+            end)
+        end
+        task.wait(0.5)
 
         -- STEP 7: re-equip Arkenstone
         unequipAll()
