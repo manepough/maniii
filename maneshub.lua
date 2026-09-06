@@ -781,14 +781,8 @@ makeToggle(deadlyTab, "Shutdown Server (keep clicking screen)", 9, function(stat
         end
         task.wait(0.3)
 
-        -- STEP 6: wait for player to click
-        local clicked = false
-        local clickConn
-        clickConn = mouse.Button1Down:Connect(function()
-            clicked = true
-            clickConn:Disconnect()
-        end)
-        repeat task.wait() until clicked
+        -- STEP 6: give player 2s to click
+        task.wait(2)
 
         -- STEP 7: re-equip Arkenstone
         unequipAll()
