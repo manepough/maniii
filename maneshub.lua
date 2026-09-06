@@ -30,6 +30,12 @@ end
 
 local mouse = player:GetMouse()
 
+local function sayInChat(text)
+    coroutine.wrap(function()
+        game:GetService("TextChatService").TextChannels.RBXGeneral:SendAsync(text)
+    end)()
+end
+
 -- ScreenGui
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "ManesHub"
@@ -1574,12 +1580,6 @@ local function makeBtn(parent, text, order, callback)
     st.Thickness = 1
     btn.MouseButton1Click:Connect(callback)
     return btn
-end
-
-local function sayInChat(text)
-    pcall(function()
-        game:GetService("TextChatService").TextChannels.RBXGeneral:SendAsync(text)
-    end)
 end
 
 local function hasArkenstone()
