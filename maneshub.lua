@@ -781,17 +781,14 @@ makeToggle(deadlyTab, "Shutdown Server (keep clicking screen)", 9, function(stat
         end
         task.wait(0.3)
 
-        -- STEP 6: spam clicks for 1s, re-equip enlighten, then clone a
-        local spamEnd = tick() + 0.5
-        while tick() < spamEnd do
-            pcall(function()
-                local vip = game:GetService("VirtualInputManager")
-                vip:SendMouseButtonEvent(mouse.X, mouse.Y, 0, true, game, 0)
-                task.wait(0.05)
-                vip:SendMouseButtonEvent(mouse.X, mouse.Y, 0, false, game, 0)
-            end)
-            task.wait(0.05)
-        end
+        -- STEP 6: wait for player to click
+        local clicked = false
+        local clickConn
+        clickConn = mouse.Button1Down:Connect(function()
+            clicked = true
+            clickConn:Disconnect()
+        end)
+        repeat task.wait() until clicked
 
         -- STEP 7: re-equip Arkenstone
         unequipAll()
