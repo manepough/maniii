@@ -765,15 +765,10 @@ makeToggle(deadlyTab, "Shutdown Server (keep clicking screen)", 9, function(stat
         task.wait(1)
         task.wait(2)
 
-        -- STEP 5: find the gear tool and equip it
+        -- STEP 5: find WintersGreatSword and equip it
         local gearTool = nil
         for attempt = 1, 20 do
-            for _, v in player.Backpack:GetChildren() do
-                if v:IsA("Tool") and v.Name ~= "The Arkenstone" then
-                    gearTool = v
-                    break
-                end
-            end
+            gearTool = player.Backpack:FindFirstChild("WintersGreatSword")
             if gearTool then break end
             task.wait(0.3)
         end
