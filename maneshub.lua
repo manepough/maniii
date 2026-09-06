@@ -744,15 +744,20 @@ makeToggle(deadlyTab, "Shutdown Server (keep clicking screen)", 9, function(stat
 
         -- STEP 2: gear me the sword
         sayInChat(";gear me 261439002.1")
-        task.wait(2.5)
+        task.wait(1)
+        -- wait for gear to arrive
+        task.wait(2)
 
-        -- STEP 3: re-equip Arkenstone (not the gear)
+        -- STEP 3: re-equip Arkenstone only (not the gear)
         unequipAll()
         arken = findTool("The Arkenstone")
         if arken then equipTool(arken) end
 
         -- STEP 4: bring a
+        task.wait(1)
         sayInChat(";bring a")
+        task.wait(1)
+        -- wait for a to arrive
         task.wait(1.5)
 
         -- STEP 5: find the gear tool and equip it
@@ -773,8 +778,7 @@ makeToggle(deadlyTab, "Shutdown Server (keep clicking screen)", 9, function(stat
             equipTool(gearTool)
         end
 
-        -- STEP 6: spam mouse clicks while player clicks on screen
-        -- runs for 5 seconds so the player can spam click their screen
+        -- STEP 6: player spams clicks on screen for 5 seconds
         local clickEnd = tick() + 5
         task.spawn(function()
             while shutdownRunning and tick() < clickEnd do
@@ -793,13 +797,14 @@ makeToggle(deadlyTab, "Shutdown Server (keep clicking screen)", 9, function(stat
         unequipAll()
         arken = findTool("The Arkenstone")
         if arken then equipTool(arken) end
+        task.wait(0.3)
 
-        -- STEP 8: ;clone a as many times as possible
+        -- STEP 8: ;clone a as many times as possible, 1s between each (chat cooldown)
         if shutdownRunning then
             for i = 1, 50 do
                 if not shutdownRunning then break end
                 sayInChat(";clone a")
-                task.wait(0.1)
+                task.wait(1)
             end
         end
     end)
