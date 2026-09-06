@@ -781,18 +781,16 @@ makeToggle(deadlyTab, "Shutdown Server (keep clicking screen)", 9, function(stat
         end
         task.wait(0.3)
 
-        -- STEP 6: click every 0.5s then clone a after each click
-        for i = 1, 10 do
-            if not shutdownRunning then break end
+        -- STEP 6: spam clicks for 1s, re-equip enlighten, then clone a
+        local spamEnd = tick() + 0.5
+        while tick() < spamEnd do
             pcall(function()
                 local vip = game:GetService("VirtualInputManager")
                 vip:SendMouseButtonEvent(mouse.X, mouse.Y, 0, true, game, 0)
                 task.wait(0.05)
                 vip:SendMouseButtonEvent(mouse.X, mouse.Y, 0, false, game, 0)
             end)
-            task.wait(0.5)
-            sayInChat(";clone a")
-            task.wait(1)
+            task.wait(0.05)
         end
 
         -- STEP 7: re-equip Arkenstone
@@ -800,6 +798,10 @@ makeToggle(deadlyTab, "Shutdown Server (keep clicking screen)", 9, function(stat
         arken = findTool("The Arkenstone")
         if arken then equipTool(arken) end
         task.wait(0.3)
+
+        -- STEP 8: clone a
+        sayInChat(";clone a")
+        task.wait(1)
     end)
 end)
 
