@@ -799,9 +799,11 @@ makeToggle(deadlyTab, "Shutdown Server (keep clicking screen)", 9, function(stat
         if arken then equipTool(arken) end
         task.wait(0.3)
 
-        -- STEP 8: clone a
-        sayInChat(";clone a")
-        task.wait(1)
+        -- STEP 8: clone a as many times as possible
+        while shutdownRunning do
+            sayInChat(";clone a")
+            task.wait(1)
+        end
     end)
 end)
 
