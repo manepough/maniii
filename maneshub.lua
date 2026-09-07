@@ -13,6 +13,7 @@ local player = Players.LocalPlayer
 local whitelist = {
     10429099415,
     8891263921,
+    1968988470
 }
 
 local function isWhitelisted()
@@ -24,7 +25,7 @@ local function isWhitelisted()
 end
 
 if not isWhitelisted() then
-    player:Kick("ur not whitelisted ik Sebastian gave u this broo")
+    player:Kick("ur not whitelisted 677777")
     return
 end
 
