@@ -2308,7 +2308,10 @@ local function makeCodeRow(parent, labelText, idText, order)
 
     local capId = idText
     btn.MouseButton1Click:Connect(function()
-        pcall(function() setclipboard(capId) end)
+        pcall(function()
+            local cb = setclipboard or toclipboard or (Clipboard and Clipboard.set)
+            if cb then cb(capId) end
+        end)
         btn.Text = "Copied"
         btn.TextColor3 = Color3.fromRGB(80, 200, 120)
         task.delay(1.5, function()
@@ -2578,30 +2581,16 @@ local MPS = game:GetService("MarketplaceService")
 
 local function searchGear(v)
     if type(v) ~= "string" or v == "" then return nil, "type a gear name" end
-    -- search via Roblox catalog using HttpGet through roproxy
-    local ok, body = pcall(function()
-        return game:HttpGet(
-            "https://catalog.roproxy.com/v1/search/items/details?Category=11&Subcategory=5&Keyword="
-            .. HttpService:UrlEncode(v) .. "&Limit=30"
-        )
+    local httpFunc = (syn and syn.request) or http_request or request or (fluxus and fluxus.request)
+    if not httpFunc then return nil, "no http func" end
+    local url = "https://catalog.roproxy.com/v1/search/items/details?Category=11&Subcategory=5&Keyword="
+        .. HttpService:UrlEncode(v) .. "&Limit=30"
+    local ok, r = pcall(function()
+        return httpFunc({ Url = url, Method = "GET" })
     end)
-    -- fallback: try games.roproxy.com endpoint
-    if not ok or not body then
-        ok, body = pcall(function()
-            return game:HttpGet(
-                "https://www.roblox.com/catalog/json?CatalogContext=2&Keyword="
-                .. HttpService:UrlEncode(v) .. "&Category=11&PageSize=10"
-            )
-        end)
-    end
-    if not ok or not body then return nil, "HTTP not available" end
-    local ok2, d = pcall(function() return HttpService:JSONDecode(body).data end)
-    if not ok2 or not d then
-        -- try alternate JSON shape
-        local ok3, d2 = pcall(function() return HttpService:JSONDecode(body) end)
-        if not ok3 or not d2 then return nil, "parse error" end
-        d = d2
-    end
+    if not ok or not r or not r.Body then return nil, "HTTP error" end
+    local ok2, d = pcall(function() return HttpService:JSONDecode(r.Body).data end)
+    if not ok2 or not d then return nil, "parse error" end
     local words = {}
     for s in v:lower():gmatch("%S+") do words[#words+1] = s end
     for _, item in ipairs(d) do
