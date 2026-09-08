@@ -467,54 +467,71 @@ makeToggle(detectTab, "Grief Detection", 5, function(state)
     if not state then return end
     local bricks = workspace:FindFirstChild("Bricks")
     if not bricks then return end
-    -- watch every player folder except local player
-    for _, plrFolder in ipairs(bricks:GetChildren()) do
-        if plrFolder.Name ~= player.Name then
-            local name = plrFolder.Name
-            local counts = { remove = 0, paint = 0 }
-            griefers[name] = counts
-            -- block removed
-            detectConns["Grief_rem_" .. name] = plrFolder.ChildRemoved:Connect(function()
+
+    local function watchFolder(plrFolder)
+        local ownerName = plrFolder.Name
+        -- track children before removal so we can verify
+        local counts = { remove = 0, paint = 0 }
+        griefers[ownerName] = counts
+
+        -- ChildRemoved fires on the OWNER's folder
+        -- we detect the actual deleter by checking who's using delete tool
+        detectConns["Grief_rem_" .. ownerName] = plrFolder.ChildRemoved:Connect(function(removedBlock)
+            -- find who deleted it: check all players for equipped Delete tool
+            local deleterName = nil
+            for _, plr in ipairs(game:GetService("Players"):GetPlayers()) do
+                if plr.Name ~= ownerName then -- not the block owner
+                    local char = plr.Character
+                    if char then
+                        local tool = char:FindFirstChildOfClass("Tool")
+                        if tool and (tool.Name == "Delete" or tool.Name == "Erase" or tool.Name == "Remove") then
+                            deleterName = plr.Name
+                            break
+                        end
+                    end
+                end
+            end
+            -- only count if a non-owner deleted it
+            if deleterName then
                 counts.remove = counts.remove + 1
                 if counts.remove >= 3 then
                     counts.remove = 0
-                    sayInChat(name .. " is griefing (deleted blocks)")
+                    sayInChat(deleterName .. " is griefing " .. ownerName .. " (deleted blocks)")
                 end
-            end)
-            -- block color changed (paint)
-            detectConns["Grief_paint_" .. name] = plrFolder.DescendantChanged:Connect(function(desc, prop)
-                if prop == "Color" or prop == "BrickColor" then
-                    counts.paint = counts.paint + 1
-                    if counts.paint >= 3 then
-                        counts.paint = 0
-                        sayInChat(name .. " is griefing (painting blocks)")
-                    end
-                end
-            end)
-        end
-    end
-    -- watch new players joining during session
-    detectConns["Grief_new"] = bricks.ChildAdded:Connect(function(plrFolder)
-        if plrFolder.Name == player.Name then return end
-        local name = plrFolder.Name
-        local counts = { remove = 0, paint = 0 }
-        griefers[name] = counts
-        detectConns["Grief_rem_" .. name] = plrFolder.ChildRemoved:Connect(function()
-            counts.remove = counts.remove + 1
-            if counts.remove >= 3 then
-                counts.remove = 0
-                sayInChat(name .. " is griefing (deleted blocks)")
             end
         end)
-        detectConns["Grief_paint_" .. name] = plrFolder.DescendantChanged:Connect(function(desc, prop)
-            if prop == "Color" or prop == "BrickColor" then
+
+        -- paint detection: only flag if someone other than owner has paint tool equipped
+        detectConns["Grief_paint_" .. ownerName] = plrFolder.DescendantChanged:Connect(function(desc, prop)
+            if prop ~= "Color" and prop ~= "BrickColor" then return end
+            local deleterName = nil
+            for _, plr in ipairs(game:GetService("Players"):GetPlayers()) do
+                if plr.Name ~= ownerName then
+                    local char = plr.Character
+                    if char then
+                        local tool = char:FindFirstChildOfClass("Tool")
+                        if tool and (tool.Name == "Paint" or tool.Name == "Color") then
+                            deleterName = plr.Name
+                            break
+                        end
+                    end
+                end
+            end
+            if deleterName then
                 counts.paint = counts.paint + 1
                 if counts.paint >= 3 then
                     counts.paint = 0
-                    sayInChat(name .. " is griefing (painting blocks)")
+                    sayInChat(deleterName .. " is griefing " .. ownerName .. " (painting blocks)")
                 end
             end
         end)
+    end
+
+    for _, plrFolder in ipairs(bricks:GetChildren()) do
+        watchFolder(plrFolder)
+    end
+    detectConns["Grief_new"] = bricks.ChildAdded:Connect(function(plrFolder)
+        watchFolder(plrFolder)
     end)
 end)
 
@@ -540,9 +557,8 @@ makeToggle(detectTab, "Enlighten Alarm", 6, function(state)
     end)
 end)
 
--- Lag machine detector
+-- Lag machine detector — 15 blocks per second threshold
 local buildCounts = {}
-local buildWindow = 3 -- seconds
 makeToggle(detectTab, "Lag Machine Detector", 7, function(state)
     clearDetectConn("LagMachine")
     buildCounts = {}
@@ -557,10 +573,11 @@ makeToggle(detectTab, "Lag Machine Detector", 7, function(state)
             local t = tick()
             local times = buildCounts[name]
             table.insert(times, t)
-            -- remove old entries outside window
-            while #times > 0 and (t - times[1]) > buildWindow do
+            -- keep only last 2 seconds of timestamps
+            while #times > 0 and (t - times[1]) > 2 do
                 table.remove(times, 1)
             end
+            -- 10+ blocks in 2 seconds = lag machine
             if #times >= 10 then
                 buildCounts[name] = {}
                 sayInChat(name .. " possible building lag machine or hacking")
