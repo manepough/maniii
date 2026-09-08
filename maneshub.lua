@@ -13,6 +13,7 @@ local player = Players.LocalPlayer
 local whitelist = {
     10429099415,
     8891263921,
+    3106404044
 }
 
 local function isWhitelisted()
