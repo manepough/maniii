@@ -2440,7 +2440,7 @@ gearToggleBtn.BorderSizePixel = 0
 gearToggleBtn.Font = Enum.Font.GothamBold
 gearToggleBtn.TextSize = 12
 gearToggleBtn.TextColor3 = Color3.fromRGB(220, 220, 220)
-gearToggleBtn.Text = "+ Gear Searcher / Saver"
+gearToggleBtn.Text = "+ Gear Saver"
 gearToggleBtn.LayoutOrder = 4
 gearToggleBtn.ZIndex = 7
 Instance.new("UICorner", gearToggleBtn).CornerRadius = UDim.new(0, 8)
@@ -2460,104 +2460,61 @@ local gList = Instance.new("UIListLayout", gearContainer)
 gList.Padding = UDim.new(0, 4)
 gList.SortOrder = Enum.SortOrder.LayoutOrder
 
--- Gear search bar
-local gSearchRow = Instance.new("Frame", gearContainer)
-gSearchRow.Size = UDim2.new(1, 0, 0, 34)
-gSearchRow.BackgroundColor3 = Color3.fromRGB(18, 18, 18)
-gSearchRow.BorderSizePixel = 0
-gSearchRow.LayoutOrder = 0
-gSearchRow.ZIndex = 7
-Instance.new("UICorner", gSearchRow).CornerRadius = UDim.new(0, 7)
+-- Add row (name + id + + button)
+local gAddRow = Instance.new("Frame", gearContainer)
+gAddRow.Size = UDim2.new(1, 0, 0, 34)
+gAddRow.BackgroundColor3 = Color3.fromRGB(18, 18, 18)
+gAddRow.BorderSizePixel = 0
+gAddRow.LayoutOrder = 0
+gAddRow.ZIndex = 7
+Instance.new("UICorner", gAddRow).CornerRadius = UDim.new(0, 7)
 
-local gSearchBox = Instance.new("TextBox", gSearchRow)
-gSearchBox.Size = UDim2.new(0.7, -4, 1, -8)
-gSearchBox.Position = UDim2.new(0, 4, 0, 4)
-gSearchBox.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-gSearchBox.BorderSizePixel = 0
-gSearchBox.Font = Enum.Font.Gotham
-gSearchBox.TextSize = 10
-gSearchBox.TextColor3 = Color3.fromRGB(190, 190, 190)
-gSearchBox.PlaceholderText = "search gear name..."
-gSearchBox.PlaceholderColor3 = Color3.fromRGB(90, 90, 90)
-gSearchBox.Text = ""
-gSearchBox.ZIndex = 8
-Instance.new("UICorner", gSearchBox).CornerRadius = UDim.new(0, 5)
+local gNameBox = Instance.new("TextBox", gAddRow)
+gNameBox.Size = UDim2.new(0.4, -4, 1, -8)
+gNameBox.Position = UDim2.new(0, 4, 0, 4)
+gNameBox.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+gNameBox.BorderSizePixel = 0
+gNameBox.Font = Enum.Font.Gotham
+gNameBox.TextSize = 10
+gNameBox.TextColor3 = Color3.fromRGB(190, 190, 190)
+gNameBox.PlaceholderText = "gear name"
+gNameBox.PlaceholderColor3 = Color3.fromRGB(90, 90, 90)
+gNameBox.Text = ""
+gNameBox.ZIndex = 8
+Instance.new("UICorner", gNameBox).CornerRadius = UDim.new(0, 5)
 
-local gSearchBtn = Instance.new("TextButton", gSearchRow)
-gSearchBtn.Size = UDim2.new(0.3, -4, 1, -8)
-gSearchBtn.Position = UDim2.new(0.7, 2, 0, 4)
-gSearchBtn.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
-gSearchBtn.BorderSizePixel = 0
-gSearchBtn.Font = Enum.Font.GothamBold
-gSearchBtn.TextSize = 10
-gSearchBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
-gSearchBtn.Text = "Search"
-gSearchBtn.ZIndex = 9
-Instance.new("UICorner", gSearchBtn).CornerRadius = UDim.new(0, 5)
+local gIdBox = Instance.new("TextBox", gAddRow)
+gIdBox.Size = UDim2.new(0.35, -4, 1, -8)
+gIdBox.Position = UDim2.new(0.4, 4, 0, 4)
+gIdBox.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+gIdBox.BorderSizePixel = 0
+gIdBox.Font = Enum.Font.Gotham
+gIdBox.TextSize = 10
+gIdBox.TextColor3 = Color3.fromRGB(190, 190, 190)
+gIdBox.PlaceholderText = "gear id"
+gIdBox.PlaceholderColor3 = Color3.fromRGB(90, 90, 90)
+gIdBox.Text = ""
+gIdBox.ZIndex = 8
+Instance.new("UICorner", gIdBox).CornerRadius = UDim.new(0, 5)
 
--- Gear result row
-local gResultRow = Instance.new("Frame", gearContainer)
-gResultRow.Size = UDim2.new(1, 0, 0, 34)
-gResultRow.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-gResultRow.BorderSizePixel = 0
-gResultRow.LayoutOrder = 1
-gResultRow.ZIndex = 7
-Instance.new("UICorner", gResultRow).CornerRadius = UDim.new(0, 7)
+local gAddBtn = Instance.new("TextButton", gAddRow)
+gAddBtn.Size = UDim2.new(0.25, -4, 1, -8)
+gAddBtn.Position = UDim2.new(0.75, 2, 0, 4)
+gAddBtn.BackgroundColor3 = Color3.fromRGB(40, 120, 60)
+gAddBtn.BorderSizePixel = 0
+gAddBtn.Font = Enum.Font.GothamBold
+gAddBtn.TextSize = 10
+gAddBtn.TextColor3 = Color3.fromRGB(220, 220, 220)
+gAddBtn.Text = "+"
+gAddBtn.ZIndex = 9
+Instance.new("UICorner", gAddBtn).CornerRadius = UDim.new(0, 5)
 
-local gResultLbl = Instance.new("TextLabel", gResultRow)
-gResultLbl.Size = UDim2.new(1, -130, 1, 0)
-gResultLbl.Position = UDim2.new(0, 10, 0, 0)
-gResultLbl.BackgroundTransparency = 1
-gResultLbl.Font = Enum.Font.Gotham
-gResultLbl.TextSize = 10
-gResultLbl.TextColor3 = Color3.fromRGB(160, 160, 160)
-gResultLbl.Text = "no result yet"
-gResultLbl.TextXAlignment = Enum.TextXAlignment.Left
-gResultLbl.ZIndex = 8
+local gearEntryCount = 0
 
-local gGearBtn = Instance.new("TextButton", gResultRow)
-gGearBtn.Size = UDim2.new(0, 55, 0, 22)
-gGearBtn.Position = UDim2.new(1, -125, 0.5, -11)
-gGearBtn.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
-gGearBtn.BorderSizePixel = 0
-gGearBtn.Font = Enum.Font.GothamBold
-gGearBtn.TextSize = 9
-gGearBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
-gGearBtn.Text = "Gear me"
-gGearBtn.ZIndex = 9
-Instance.new("UICorner", gGearBtn).CornerRadius = UDim.new(0, 6)
-
-local gSaveBtn = Instance.new("TextButton", gResultRow)
-gSaveBtn.Size = UDim2.new(0, 55, 0, 22)
-gSaveBtn.Position = UDim2.new(1, -66, 0.5, -11)
-gSaveBtn.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
-gSaveBtn.BorderSizePixel = 0
-gSaveBtn.Font = Enum.Font.GothamBold
-gSaveBtn.TextSize = 9
-gSaveBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
-gSaveBtn.Text = "Save"
-gSaveBtn.ZIndex = 9
-Instance.new("UICorner", gSaveBtn).CornerRadius = UDim.new(0, 6)
-
--- Saved gears container
-local savedLabel = Instance.new("TextLabel", gearContainer)
-savedLabel.Size = UDim2.new(1, 0, 0, 20)
-savedLabel.BackgroundTransparency = 1
-savedLabel.Font = Enum.Font.GothamBold
-savedLabel.TextSize = 10
-savedLabel.TextColor3 = Color3.fromRGB(120, 120, 120)
-savedLabel.Text = "saved gears"
-savedLabel.TextXAlignment = Enum.TextXAlignment.Left
-savedLabel.LayoutOrder = 2
-savedLabel.ZIndex = 7
-
-local currentGearId = nil
-local gearEntryCount = 10
-
-local function addSavedGearRow(name, id)
+local function addGearRow(name, id)
     gearEntryCount = gearEntryCount + 1
-    local row = makeCodeRow(gearContainer, name .. " - " .. id, id, gearEntryCount)
-    -- also add a gear me btn
+    local row = makeCodeRow(gearContainer, name, id, gearEntryCount + 1)
+    -- gear me button on each row
     local gBtn = Instance.new("TextButton", row)
     gBtn.Size = UDim2.new(0, 55, 0, 22)
     gBtn.Position = UDim2.new(1, -128, 0.5, -11)
@@ -2576,79 +2533,20 @@ local function addSavedGearRow(name, id)
     gearContainer.Size = UDim2.new(1, 0, 0, gList.AbsoluteContentSize.Y + 4)
 end
 
--- Gear search
-local MPS = game:GetService("MarketplaceService")
-
-local function searchGear(v)
-    if type(v) ~= "string" or v == "" then return nil, "type a gear name" end
-    local httpFunc = (syn and syn.request) or http_request or request or (fluxus and fluxus.request)
-    if not httpFunc then return nil, "no http func" end
-    local url = "http://catalog.roproxy.com/v1/search/items/details?Category=11&Subcategory=5&Keyword="
-        .. HttpService:UrlEncode(v) .. "&Limit=30"
-    local ok, r = pcall(function()
-        return httpFunc({ Url = url, Method = "GET" })
-    end)
-    if not ok or not r or not r.Body then return nil, "HTTP error" end
-    local ok2, d = pcall(function() return HttpService:JSONDecode(r.Body).data end)
-    if not ok2 or not d then return nil, "parse error" end
-    local words = {}
-    for s in v:lower():gmatch("%S+") do words[#words+1] = s end
-    for _, item in ipairs(d) do
-        local itemName = item.Name or item.name or ""
-        local itemDesc = item.Description or item.description or ""
-        local hay = (itemName .. " " .. itemDesc):lower()
-        local found = 0
-        for _, w in ipairs(words) do
-            if hay:find(w, 1, true) then found = found + 1 end
-        end
-        if found >= math.max(1, math.floor(#words * 0.1)) then
-            local id = item.Id or item.id or item.AssetId or item.assetId
-            return tostring(id), itemName ~= "" and itemName or tostring(id)
-        end
-    end
-    return nil, "not found"
-end
-
-gSearchBtn.MouseButton1Click:Connect(function()
-    local query = gSearchBox.Text:gsub("^%s*(.-)%s*$", "%1")
-    if query == "" then return end
-    gResultLbl.Text = "searching..."
-    gSearchBtn.Text = "..."
-    task.spawn(function()
-        local id, nameOrErr = searchGear(query)
-        gSearchBtn.Text = "Search"
-        if id then
-            currentGearId = id
-            gResultLbl.Text = nameOrErr .. " (" .. id .. ")"
-            gResultLbl.TextColor3 = Color3.fromRGB(80, 200, 120)
-        else
-            gResultLbl.Text = nameOrErr or "unknown error"
-            gResultLbl.TextColor3 = Color3.fromRGB(200, 80, 80)
-            currentGearId = nil
-        end
-    end)
-end)
-
-gGearBtn.MouseButton1Click:Connect(function()
-    if currentGearId then
-        sayInChat(";gear me " .. currentGearId)
-    end
-end)
-
-gSaveBtn.MouseButton1Click:Connect(function()
-    if currentGearId then
-        local name = gResultLbl.Text:match("^(.+) %(") or currentGearId
-        table.insert(savedGears, { name = name, id = currentGearId })
-        addSavedGearRow(name, currentGearId)
-        gSaveBtn.Text = "Saved"
-        task.delay(1.5, function() gSaveBtn.Text = "Save" end)
+gAddBtn.MouseButton1Click:Connect(function()
+    local n = gNameBox.Text:gsub("^%s*(.-)%s*$", "%1")
+    local i = gIdBox.Text:gsub("^%s*(.-)%s*$", "%1")
+    if n ~= "" and i ~= "" then
+        addGearRow(n, i)
+        gNameBox.Text = ""
+        gIdBox.Text = ""
     end
 end)
 
 gearToggleBtn.MouseButton1Click:Connect(function()
     showGear = not showGear
     gearContainer.Visible = showGear
-    gearToggleBtn.Text = (showGear and "- Gear Searcher / Saver" or "+ Gear Searcher / Saver")
+    gearToggleBtn.Text = (showGear and "- Gear Saver" or "+ Gear Saver")
     if showGear then
         task.wait()
         gearContainer.Size = UDim2.new(1, 0, 0, gList.AbsoluteContentSize.Y + 4)
