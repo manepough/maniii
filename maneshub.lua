@@ -568,18 +568,22 @@ makeToggle(detectTab, "Lag Machine Detector", 7, function(state)
     local function watchBuilder(plrFolder)
         if plrFolder.Name == player.Name then return end
         local name = plrFolder.Name
-        buildCounts[name] = {}
+        buildCounts[name] = { times = {}, cooldownUntil = 0 }
         detectConns["Lag_" .. name] = plrFolder.ChildAdded:Connect(function()
             local t = tick()
-            local times = buildCounts[name]
-            table.insert(times, t)
-            -- keep only last 2 seconds of timestamps
-            while #times > 0 and (t - times[1]) > 2 do
-                table.remove(times, 1)
+            local data = buildCounts[name]
+            if not data then return end
+            -- skip if on cooldown
+            if t < data.cooldownUntil then return end
+            table.insert(data.times, t)
+            -- keep only last 1.5 seconds
+            while #data.times > 0 and (t - data.times[1]) > 1.5 do
+                table.remove(data.times, 1)
             end
-            -- 10+ blocks in 2 seconds = lag machine
-            if #times >= 10 then
-                buildCounts[name] = {}
+            -- 10+ blocks in 1.5s = lag machine
+            if #data.times >= 10 then
+                data.times = {}
+                data.cooldownUntil = t + 10 -- 10s cooldown for this player
                 sayInChat(name .. " possible building lag machine or hacking")
             end
         end)
