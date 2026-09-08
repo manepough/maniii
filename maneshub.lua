@@ -13,7 +13,6 @@ local player = Players.LocalPlayer
 local whitelist = {
     10429099415,
     8891263921,
-    1968988470
 }
 
 local function isWhitelisted()
@@ -25,7 +24,7 @@ local function isWhitelisted()
 end
 
 if not isWhitelisted() then
-    player:Kick("ur not whitelisted 677777")
+    player:Kick("ur not whitelisted ik Sebastian gave u this broo")
     return
 end
 
@@ -1220,27 +1219,8 @@ local function getBackpackEvent(toolName)
     return nil
 end
 
--- Friend's getInfiniteBuildArgs: finds adjacent block to build from for infinite range
+-- Infinite range: always fire directly to workspace.Terrain like the build src
 local function getInfiniteBuildArgs(targetPos)
-    local bricks = workspace:FindFirstChild("Bricks")
-    if bricks then
-        for _, p in ipairs(bricks:GetDescendants()) do
-            if p:IsA("BasePart") then
-                local diff = targetPos - p.Position
-                if math.abs(diff.Magnitude - 4) < 0.2 then
-                    local normal = Enum.NormalId.Top
-                    if     diff.X >  3 then normal = Enum.NormalId.Right
-                    elseif diff.X < -3 then normal = Enum.NormalId.Left
-                    elseif diff.Y >  3 then normal = Enum.NormalId.Top
-                    elseif diff.Y < -3 then normal = Enum.NormalId.Bottom
-                    elseif diff.Z >  3 then normal = Enum.NormalId.Back
-                    elseif diff.Z < -3 then normal = Enum.NormalId.Front
-                    end
-                    return p, normal, targetPos
-                end
-            end
-        end
-    end
     return workspace.Terrain, Enum.NormalId.Top, targetPos
 end
 
@@ -1262,14 +1242,13 @@ local function placeBlock(pos, bsize)
     repeat
         c = c + 1
         buildEvent = getBackpackEvent("Build") or buildEvent
-        -- refresh getInfiniteBuildArgs each retry in case new blocks were placed
         tBlock, tNorm, tHit = getInfiniteBuildArgs(pos)
         args = {tBlock, tNorm, tHit, bsize or "normal"}
         if buildEvent then
             pcall(function() buildEvent:FireServer(table.unpack(args)) end)
         end
-        task.wait(0.08)
-    until (built and childcube) or stopped or skipblock or c > 200
+        task.wait(0.02)
+    until (built and childcube) or stopped or skipblock or c > 50
 
     built = false
     return childcube
