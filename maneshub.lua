@@ -13,7 +13,8 @@ local player = Players.LocalPlayer
 local whitelist = {
     10429099415,
     8891263921,
-    3106404044
+    3106404044,
+    1968988470,
 }
 
 local function isWhitelisted()
@@ -398,6 +399,178 @@ makeValue(mainTab, os.date("%H:%M:%S"), 14)
 makeDivider(mainTab, 15)
 makeLabel(mainTab, "team", 16)
 makeValue(mainTab, player.Team and player.Team.Name or "none", 17)
+
+-- ==================
+-- DETECTION TAB
+-- ==================
+local detectTab = createTab("Detection")
+
+makeLabel(detectTab, "detections – sends alerts in chat", 1)
+makeDivider(detectTab, 2)
+
+local detectConns = {}
+local function clearDetectConn(name)
+    if detectConns[name] then
+        pcall(function() detectConns[name]:Disconnect() end)
+        detectConns[name] = nil
+    end
+end
+
+-- Silent/hidden message sender
+makeLabel(detectTab, "send silent msg", 3)
+local silentTargetBox = Instance.new("TextBox", detectTab)
+silentTargetBox.Size = UDim2.new(1, 0, 0, 30)
+silentTargetBox.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+silentTargetBox.BorderSizePixel = 0
+silentTargetBox.Font = Enum.Font.Gotham
+silentTargetBox.TextSize = 10
+silentTargetBox.TextColor3 = Color3.fromRGB(190, 190, 190)
+silentTargetBox.PlaceholderText = "player name (e.g. john123)"
+silentTargetBox.PlaceholderColor3 = Color3.fromRGB(80, 80, 80)
+silentTargetBox.Text = ""
+silentTargetBox.LayoutOrder = 4
+silentTargetBox.ZIndex = 7
+Instance.new("UICorner", silentTargetBox).CornerRadius = UDim.new(0, 6)
+
+local silentMsgBox = Instance.new("TextBox", detectTab)
+silentMsgBox.Size = UDim2.new(1, 0, 0, 30)
+silentMsgBox.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+silentMsgBox.BorderSizePixel = 0
+silentMsgBox.Font = Enum.Font.Gotham
+silentMsgBox.TextSize = 10
+silentMsgBox.TextColor3 = Color3.fromRGB(190, 190, 190)
+silentMsgBox.PlaceholderText = "message to send"
+silentMsgBox.PlaceholderColor3 = Color3.fromRGB(80, 80, 80)
+silentMsgBox.Text = ""
+silentMsgBox.LayoutOrder = 5
+silentMsgBox.ZIndex = 7
+Instance.new("UICorner", silentMsgBox).CornerRadius = UDim.new(0, 6)
+
+makeBtn(detectTab, "Send Silent", 6, function()
+    local target = silentTargetBox.Text:gsub("^%s*(.-)%s*$", "%1")
+    local msg    = silentMsgBox.Text:gsub("^%s*(.-)%s*$", "%1")
+    if target ~= "" and msg ~= "" then
+        sayInChat(";" .. target .. " " .. msg)
+    end
+end)
+
+makeDivider(detectTab, 7)
+
+-- Grief detection
+local griefers = {}
+makeToggle(detectTab, "Grief Detection", 8, function(state)
+    clearDetectConn("Grief")
+    griefers = {}
+    if not state then return end
+    local bricks = workspace:FindFirstChild("Bricks")
+    if not bricks then return end
+    -- watch every player folder except local player
+    for _, plrFolder in ipairs(bricks:GetChildren()) do
+        if plrFolder.Name ~= player.Name then
+            local name = plrFolder.Name
+            local counts = { remove = 0, paint = 0 }
+            griefers[name] = counts
+            -- block removed
+            detectConns["Grief_rem_" .. name] = plrFolder.ChildRemoved:Connect(function()
+                counts.remove = counts.remove + 1
+                if counts.remove >= 3 then
+                    counts.remove = 0
+                    sayInChat(name .. " is griefing (deleted blocks)")
+                end
+            end)
+            -- block color changed (paint)
+            detectConns["Grief_paint_" .. name] = plrFolder.DescendantChanged:Connect(function(desc, prop)
+                if prop == "Color" or prop == "BrickColor" then
+                    counts.paint = counts.paint + 1
+                    if counts.paint >= 3 then
+                        counts.paint = 0
+                        sayInChat(name .. " is griefing (painting blocks)")
+                    end
+                end
+            end)
+        end
+    end
+    -- watch new players joining during session
+    detectConns["Grief_new"] = bricks.ChildAdded:Connect(function(plrFolder)
+        if plrFolder.Name == player.Name then return end
+        local name = plrFolder.Name
+        local counts = { remove = 0, paint = 0 }
+        griefers[name] = counts
+        detectConns["Grief_rem_" .. name] = plrFolder.ChildRemoved:Connect(function()
+            counts.remove = counts.remove + 1
+            if counts.remove >= 3 then
+                counts.remove = 0
+                sayInChat(name .. " is griefing (deleted blocks)")
+            end
+        end)
+        detectConns["Grief_paint_" .. name] = plrFolder.DescendantChanged:Connect(function(desc, prop)
+            if prop == "Color" or prop == "BrickColor" then
+                counts.paint = counts.paint + 1
+                if counts.paint >= 3 then
+                    counts.paint = 0
+                    sayInChat(name .. " is griefing (painting blocks)")
+                end
+            end
+        end)
+    end)
+end)
+
+-- Enlighten alarm
+local enlightenAlerted = {}
+makeToggle(detectTab, "Enlighten Alarm", 9, function(state)
+    clearDetectConn("Enlighten")
+    enlightenAlerted = {}
+    if not state then return end
+    detectConns["Enlighten"] = game:GetService("RunService").Heartbeat:Connect(function()
+        for _, plr in ipairs(game:GetService("Players"):GetPlayers()) do
+            if plr ~= player and not enlightenAlerted[plr.Name] then
+                local char = plr.Character
+                if char then
+                    local hasEnli = char:FindFirstChild("The Arkenstone") or plr.Backpack:FindFirstChild("The Arkenstone")
+                    if hasEnli then
+                        enlightenAlerted[plr.Name] = true
+                        sayInChat(plr.Name .. " has the Arkenstone")
+                    end
+                end
+            end
+        end
+    end)
+end)
+
+-- Lag machine detector
+local buildCounts = {}
+local buildWindow = 3 -- seconds
+makeToggle(detectTab, "Lag Machine Detector", 10, function(state)
+    clearDetectConn("LagMachine")
+    buildCounts = {}
+    if not state then return end
+    local bricks = workspace:FindFirstChild("Bricks")
+    if not bricks then return end
+    local function watchBuilder(plrFolder)
+        if plrFolder.Name == player.Name then return end
+        local name = plrFolder.Name
+        buildCounts[name] = {}
+        detectConns["Lag_" .. name] = plrFolder.ChildAdded:Connect(function()
+            local t = tick()
+            local times = buildCounts[name]
+            table.insert(times, t)
+            -- remove old entries outside window
+            while #times > 0 and (t - times[1]) > buildWindow do
+                table.remove(times, 1)
+            end
+            if #times >= 10 then
+                buildCounts[name] = {}
+                sayInChat(name .. " possible building lag machine or hacking")
+            end
+        end)
+    end
+    for _, plrFolder in ipairs(bricks:GetChildren()) do
+        watchBuilder(plrFolder)
+    end
+    detectConns["Lag_new"] = bricks.ChildAdded:Connect(function(plrFolder)
+        watchBuilder(plrFolder)
+    end)
+end)
 
 -- ==================
 -- DEADLY TAB
@@ -2061,15 +2234,22 @@ makeToggle(abuseTab, "Full Abuse (toggle)", 5, function(state)
     end)
 end)
 
--- ==================
--- BOOMBOX TAB
--- ==================
-local boomboxTab = createTab("Boombox")
 
-makeLabel(boomboxTab, "boombox ids – click copy to clipboard", 1)
-makeDivider(boomboxTab, 2)
+-- ==================
+-- CODES TAB
+-- ==================
+local codesTab = createTab("Codes")
+local HttpService = game:GetService("HttpService")
 
-local boomboxSongs = {
+-- Section visibility state
+local showBoombox = false
+local showGear    = false
+
+-- Saved gears list (session only)
+local savedGears = {}
+
+-- Boombox entries (default)
+local boomboxEntries = {
     { id = "107793153086436", name = "too manny neck hurts" },
     { id = "71105881541052",  name = "WONDER WHY THEY HATE ON ME" },
     { id = "79636472181684",  name = "ISHOWSPEED X CENAT (patched)" },
@@ -2086,68 +2266,387 @@ local boomboxSongs = {
     { id = "99523952265756",  name = "i forgot" },
 }
 
-local boomboxStatus = makeLabel(boomboxTab, "", 3)
-boomboxStatus.TextColor3 = Color3.fromRGB(80, 200, 120)
-boomboxStatus.LayoutOrder = 3
-
-for i, song in ipairs(boomboxSongs) do
-    local order = 3 + i
-
-    local row = Instance.new("Frame", boomboxTab)
+-- Helper: make a copy-row in a container
+local function makeCodeRow(parent, labelText, idText, order)
+    local row = Instance.new("Frame", parent)
     row.Size = UDim2.new(1, 0, 0, 34)
     row.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
     row.BorderSizePixel = 0
     row.LayoutOrder = order
     row.ZIndex = 7
     Instance.new("UICorner", row).CornerRadius = UDim.new(0, 7)
-    local rowStroke = Instance.new("UIStroke", row)
-    rowStroke.Color = Color3.fromRGB(40, 40, 40)
-    rowStroke.Thickness = 1
+    local s = Instance.new("UIStroke", row)
+    s.Color = Color3.fromRGB(40, 40, 40)
+    s.Thickness = 1
 
-    -- Song name label
-    local nameLbl = Instance.new("TextLabel", row)
-    nameLbl.Size = UDim2.new(1, -80, 1, 0)
-    nameLbl.Position = UDim2.new(0, 10, 0, 0)
-    nameLbl.BackgroundTransparency = 1
-    nameLbl.Font = Enum.Font.Gotham
-    nameLbl.TextSize = 10
-    nameLbl.TextColor3 = Color3.fromRGB(190, 190, 190)
-    nameLbl.Text = song.name
-    nameLbl.TextXAlignment = Enum.TextXAlignment.Left
-    nameLbl.TextTruncate = Enum.TextTruncate.AtEnd
-    nameLbl.ZIndex = 8
+    local lbl = Instance.new("TextLabel", row)
+    lbl.Size = UDim2.new(1, -80, 1, 0)
+    lbl.Position = UDim2.new(0, 10, 0, 0)
+    lbl.BackgroundTransparency = 1
+    lbl.Font = Enum.Font.Gotham
+    lbl.TextSize = 10
+    lbl.TextColor3 = Color3.fromRGB(190, 190, 190)
+    lbl.Text = labelText
+    lbl.TextXAlignment = Enum.TextXAlignment.Left
+    lbl.TextTruncate = Enum.TextTruncate.AtEnd
+    lbl.ZIndex = 8
 
-    -- Copy button
-    local copyBtn = Instance.new("TextButton", row)
-    copyBtn.Size = UDim2.new(0, 60, 0, 22)
-    copyBtn.Position = UDim2.new(1, -68, 0.5, -11)
-    copyBtn.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
-    copyBtn.BorderSizePixel = 0
-    copyBtn.Font = Enum.Font.GothamBold
-    copyBtn.TextSize = 10
-    copyBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
-    copyBtn.Text = "Copy"
-    copyBtn.ZIndex = 9
-    Instance.new("UICorner", copyBtn).CornerRadius = UDim.new(0, 6)
-    local cbStroke = Instance.new("UIStroke", copyBtn)
-    cbStroke.Color = Color3.fromRGB(60, 60, 60)
-    cbStroke.Thickness = 1
+    local btn = Instance.new("TextButton", row)
+    btn.Size = UDim2.new(0, 60, 0, 22)
+    btn.Position = UDim2.new(1, -68, 0.5, -11)
+    btn.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+    btn.BorderSizePixel = 0
+    btn.Font = Enum.Font.GothamBold
+    btn.TextSize = 10
+    btn.TextColor3 = Color3.fromRGB(200, 200, 200)
+    btn.Text = "Copy"
+    btn.ZIndex = 9
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
+    local bs = Instance.new("UIStroke", btn)
+    bs.Color = Color3.fromRGB(60, 60, 60)
+    bs.Thickness = 1
 
-    local capturedId   = song.id
-    local capturedName = song.name
-    copyBtn.MouseButton1Click:Connect(function()
-        pcall(function()
-            setclipboard(capturedId)
-        end)
-        boomboxStatus.Text = "copied: " .. capturedId
-        copyBtn.Text = "✓"
-        copyBtn.TextColor3 = Color3.fromRGB(80, 200, 120)
+    local capId = idText
+    btn.MouseButton1Click:Connect(function()
+        pcall(function() setclipboard(capId) end)
+        btn.Text = "Copied"
+        btn.TextColor3 = Color3.fromRGB(80, 200, 120)
         task.delay(1.5, function()
-            copyBtn.Text = "Copy"
-            copyBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
+            btn.Text = "Copy"
+            btn.TextColor3 = Color3.fromRGB(200, 200, 200)
         end)
     end)
+    return row
 end
+
+-- ── BOOMBOX SECTION ─────────────────────────
+-- Toggle button
+local bbToggleBtn = Instance.new("TextButton", codesTab)
+bbToggleBtn.Size = UDim2.new(1, 0, 0, 36)
+bbToggleBtn.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+bbToggleBtn.BorderSizePixel = 0
+bbToggleBtn.Font = Enum.Font.GothamBold
+bbToggleBtn.TextSize = 12
+bbToggleBtn.TextColor3 = Color3.fromRGB(220, 220, 220)
+bbToggleBtn.Text = "+ Boombox Codes"
+bbToggleBtn.LayoutOrder = 1
+bbToggleBtn.ZIndex = 7
+Instance.new("UICorner", bbToggleBtn).CornerRadius = UDim.new(0, 8)
+local bbStroke = Instance.new("UIStroke", bbToggleBtn)
+bbStroke.Color = Color3.fromRGB(60, 60, 60)
+bbStroke.Thickness = 1
+
+-- Container for boombox rows
+local bbContainer = Instance.new("Frame", codesTab)
+bbContainer.Size = UDim2.new(1, 0, 0, 0)
+bbContainer.BackgroundTransparency = 1
+bbContainer.BorderSizePixel = 0
+bbContainer.LayoutOrder = 2
+bbContainer.Visible = false
+bbContainer.ClipsDescendants = true
+bbContainer.ZIndex = 7
+local bbList = Instance.new("UIListLayout", bbContainer)
+bbList.Padding = UDim.new(0, 4)
+bbList.SortOrder = Enum.SortOrder.LayoutOrder
+
+-- + add new boombox row (always first inside container)
+local bbAddRow = Instance.new("Frame", bbContainer)
+bbAddRow.Size = UDim2.new(1, 0, 0, 34)
+bbAddRow.BackgroundColor3 = Color3.fromRGB(18, 18, 18)
+bbAddRow.BorderSizePixel = 0
+bbAddRow.LayoutOrder = 0
+bbAddRow.ZIndex = 7
+Instance.new("UICorner", bbAddRow).CornerRadius = UDim.new(0, 7)
+
+local bbNameBox = Instance.new("TextBox", bbAddRow)
+bbNameBox.Size = UDim2.new(0.4, -4, 1, -8)
+bbNameBox.Position = UDim2.new(0, 4, 0, 4)
+bbNameBox.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+bbNameBox.BorderSizePixel = 0
+bbNameBox.Font = Enum.Font.Gotham
+bbNameBox.TextSize = 10
+bbNameBox.TextColor3 = Color3.fromRGB(190, 190, 190)
+bbNameBox.PlaceholderText = "name"
+bbNameBox.PlaceholderColor3 = Color3.fromRGB(90, 90, 90)
+bbNameBox.Text = ""
+bbNameBox.ZIndex = 8
+Instance.new("UICorner", bbNameBox).CornerRadius = UDim.new(0, 5)
+
+local bbIdBox = Instance.new("TextBox", bbAddRow)
+bbIdBox.Size = UDim2.new(0.35, -4, 1, -8)
+bbIdBox.Position = UDim2.new(0.4, 4, 0, 4)
+bbIdBox.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+bbIdBox.BorderSizePixel = 0
+bbIdBox.Font = Enum.Font.Gotham
+bbIdBox.TextSize = 10
+bbIdBox.TextColor3 = Color3.fromRGB(190, 190, 190)
+bbIdBox.PlaceholderText = "id"
+bbIdBox.PlaceholderColor3 = Color3.fromRGB(90, 90, 90)
+bbIdBox.Text = ""
+bbIdBox.ZIndex = 8
+Instance.new("UICorner", bbIdBox).CornerRadius = UDim.new(0, 5)
+
+local bbAddBtn = Instance.new("TextButton", bbAddRow)
+bbAddBtn.Size = UDim2.new(0.25, -4, 1, -8)
+bbAddBtn.Position = UDim2.new(0.75, 2, 0, 4)
+bbAddBtn.BackgroundColor3 = Color3.fromRGB(40, 120, 60)
+bbAddBtn.BorderSizePixel = 0
+bbAddBtn.Font = Enum.Font.GothamBold
+bbAddBtn.TextSize = 10
+bbAddBtn.TextColor3 = Color3.fromRGB(220, 220, 220)
+bbAddBtn.Text = "+"
+bbAddBtn.ZIndex = 9
+Instance.new("UICorner", bbAddBtn).CornerRadius = UDim.new(0, 5)
+
+local bbEntryCount = 0
+
+local function addBoomboxRow(name, id)
+    bbEntryCount = bbEntryCount + 1
+    makeCodeRow(bbContainer, name, id, bbEntryCount + 1)
+    bbContainer.Size = UDim2.new(1, 0, 0, bbList.AbsoluteContentSize.Y + 4)
+end
+
+-- Load default songs
+for _, song in ipairs(boomboxEntries) do
+    addBoomboxRow(song.name, song.id)
+end
+
+bbAddBtn.MouseButton1Click:Connect(function()
+    local n = bbNameBox.Text:gsub("^%s*(.-)%s*$", "%1")
+    local i = bbIdBox.Text:gsub("^%s*(.-)%s*$", "%1")
+    if n ~= "" and i ~= "" then
+        addBoomboxRow(n, i)
+        bbNameBox.Text = ""
+        bbIdBox.Text = ""
+    end
+end)
+
+bbToggleBtn.MouseButton1Click:Connect(function()
+    showBoombox = not showBoombox
+    bbContainer.Visible = showBoombox
+    bbToggleBtn.Text = (showBoombox and "- Boombox Codes" or "+ Boombox Codes")
+end)
+
+makeDivider(codesTab, 3)
+
+-- ── GEAR SECTION ─────────────────────────────
+local gearToggleBtn = Instance.new("TextButton", codesTab)
+gearToggleBtn.Size = UDim2.new(1, 0, 0, 36)
+gearToggleBtn.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+gearToggleBtn.BorderSizePixel = 0
+gearToggleBtn.Font = Enum.Font.GothamBold
+gearToggleBtn.TextSize = 12
+gearToggleBtn.TextColor3 = Color3.fromRGB(220, 220, 220)
+gearToggleBtn.Text = "+ Gear Searcher / Saver"
+gearToggleBtn.LayoutOrder = 4
+gearToggleBtn.ZIndex = 7
+Instance.new("UICorner", gearToggleBtn).CornerRadius = UDim.new(0, 8)
+local gStroke = Instance.new("UIStroke", gearToggleBtn)
+gStroke.Color = Color3.fromRGB(60, 60, 60)
+gStroke.Thickness = 1
+
+local gearContainer = Instance.new("Frame", codesTab)
+gearContainer.Size = UDim2.new(1, 0, 0, 0)
+gearContainer.BackgroundTransparency = 1
+gearContainer.BorderSizePixel = 0
+gearContainer.LayoutOrder = 5
+gearContainer.Visible = false
+gearContainer.ClipsDescendants = true
+gearContainer.ZIndex = 7
+local gList = Instance.new("UIListLayout", gearContainer)
+gList.Padding = UDim.new(0, 4)
+gList.SortOrder = Enum.SortOrder.LayoutOrder
+
+-- Gear search bar
+local gSearchRow = Instance.new("Frame", gearContainer)
+gSearchRow.Size = UDim2.new(1, 0, 0, 34)
+gSearchRow.BackgroundColor3 = Color3.fromRGB(18, 18, 18)
+gSearchRow.BorderSizePixel = 0
+gSearchRow.LayoutOrder = 0
+gSearchRow.ZIndex = 7
+Instance.new("UICorner", gSearchRow).CornerRadius = UDim.new(0, 7)
+
+local gSearchBox = Instance.new("TextBox", gSearchRow)
+gSearchBox.Size = UDim2.new(0.7, -4, 1, -8)
+gSearchBox.Position = UDim2.new(0, 4, 0, 4)
+gSearchBox.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+gSearchBox.BorderSizePixel = 0
+gSearchBox.Font = Enum.Font.Gotham
+gSearchBox.TextSize = 10
+gSearchBox.TextColor3 = Color3.fromRGB(190, 190, 190)
+gSearchBox.PlaceholderText = "search gear name..."
+gSearchBox.PlaceholderColor3 = Color3.fromRGB(90, 90, 90)
+gSearchBox.Text = ""
+gSearchBox.ZIndex = 8
+Instance.new("UICorner", gSearchBox).CornerRadius = UDim.new(0, 5)
+
+local gSearchBtn = Instance.new("TextButton", gSearchRow)
+gSearchBtn.Size = UDim2.new(0.3, -4, 1, -8)
+gSearchBtn.Position = UDim2.new(0.7, 2, 0, 4)
+gSearchBtn.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+gSearchBtn.BorderSizePixel = 0
+gSearchBtn.Font = Enum.Font.GothamBold
+gSearchBtn.TextSize = 10
+gSearchBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
+gSearchBtn.Text = "Search"
+gSearchBtn.ZIndex = 9
+Instance.new("UICorner", gSearchBtn).CornerRadius = UDim.new(0, 5)
+
+-- Gear result row
+local gResultRow = Instance.new("Frame", gearContainer)
+gResultRow.Size = UDim2.new(1, 0, 0, 34)
+gResultRow.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+gResultRow.BorderSizePixel = 0
+gResultRow.LayoutOrder = 1
+gResultRow.ZIndex = 7
+Instance.new("UICorner", gResultRow).CornerRadius = UDim.new(0, 7)
+
+local gResultLbl = Instance.new("TextLabel", gResultRow)
+gResultLbl.Size = UDim2.new(1, -130, 1, 0)
+gResultLbl.Position = UDim2.new(0, 10, 0, 0)
+gResultLbl.BackgroundTransparency = 1
+gResultLbl.Font = Enum.Font.Gotham
+gResultLbl.TextSize = 10
+gResultLbl.TextColor3 = Color3.fromRGB(160, 160, 160)
+gResultLbl.Text = "no result yet"
+gResultLbl.TextXAlignment = Enum.TextXAlignment.Left
+gResultLbl.ZIndex = 8
+
+local gGearBtn = Instance.new("TextButton", gResultRow)
+gGearBtn.Size = UDim2.new(0, 55, 0, 22)
+gGearBtn.Position = UDim2.new(1, -125, 0.5, -11)
+gGearBtn.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+gGearBtn.BorderSizePixel = 0
+gGearBtn.Font = Enum.Font.GothamBold
+gGearBtn.TextSize = 9
+gGearBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
+gGearBtn.Text = "Gear me"
+gGearBtn.ZIndex = 9
+Instance.new("UICorner", gGearBtn).CornerRadius = UDim.new(0, 6)
+
+local gSaveBtn = Instance.new("TextButton", gResultRow)
+gSaveBtn.Size = UDim2.new(0, 55, 0, 22)
+gSaveBtn.Position = UDim2.new(1, -66, 0.5, -11)
+gSaveBtn.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+gSaveBtn.BorderSizePixel = 0
+gSaveBtn.Font = Enum.Font.GothamBold
+gSaveBtn.TextSize = 9
+gSaveBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
+gSaveBtn.Text = "Save"
+gSaveBtn.ZIndex = 9
+Instance.new("UICorner", gSaveBtn).CornerRadius = UDim.new(0, 6)
+
+-- Saved gears container
+local savedLabel = Instance.new("TextLabel", gearContainer)
+savedLabel.Size = UDim2.new(1, 0, 0, 20)
+savedLabel.BackgroundTransparency = 1
+savedLabel.Font = Enum.Font.GothamBold
+savedLabel.TextSize = 10
+savedLabel.TextColor3 = Color3.fromRGB(120, 120, 120)
+savedLabel.Text = "saved gears"
+savedLabel.TextXAlignment = Enum.TextXAlignment.Left
+savedLabel.LayoutOrder = 2
+savedLabel.ZIndex = 7
+
+local currentGearId = nil
+local gearEntryCount = 10
+
+local function addSavedGearRow(name, id)
+    gearEntryCount = gearEntryCount + 1
+    local row = makeCodeRow(gearContainer, name .. " - " .. id, id, gearEntryCount)
+    -- also add a gear me btn
+    local gBtn = Instance.new("TextButton", row)
+    gBtn.Size = UDim2.new(0, 55, 0, 22)
+    gBtn.Position = UDim2.new(1, -128, 0.5, -11)
+    gBtn.BackgroundColor3 = Color3.fromRGB(35, 80, 35)
+    gBtn.BorderSizePixel = 0
+    gBtn.Font = Enum.Font.GothamBold
+    gBtn.TextSize = 9
+    gBtn.TextColor3 = Color3.fromRGB(200, 220, 200)
+    gBtn.Text = "Gear me"
+    gBtn.ZIndex = 10
+    Instance.new("UICorner", gBtn).CornerRadius = UDim.new(0, 6)
+    local capId = id
+    gBtn.MouseButton1Click:Connect(function()
+        sayInChat(";gear me " .. capId)
+    end)
+    gearContainer.Size = UDim2.new(1, 0, 0, gList.AbsoluteContentSize.Y + 4)
+end
+
+-- Searchfunc from Hyperion
+local function searchGear(v)
+    if type(v) ~= "string" or v == "" then return nil, "type a gear name" end
+    local httpR = http and http.request or http_request or request or (syn and syn.request)
+    if not httpR then return nil, "no http func" end
+    local ok, r = pcall(function()
+        return httpR({
+            Url = "https://catalog.roproxy.com/v1/search/items/details?Category=11&Subcategory=5&Keyword=" .. HttpService:UrlEncode(v) .. "&Limit=30",
+            Method = "GET"
+        })
+    end)
+    if not ok or not r or r.StatusCode ~= 200 or not r.Body then return nil, "HTTP error" end
+    local ok2, d = pcall(function() return HttpService:JSONDecode(r.Body).data end)
+    if not ok2 or not d then return nil, "parse error" end
+    local words = {}
+    for s in v:lower():gmatch("%S+") do words[#words+1] = s end
+    for _, item in ipairs(d) do
+        local hay = ((item.name or "") .. " " .. (item.description or "")):lower()
+        local found = 0
+        for _, w in ipairs(words) do
+            if hay:find(w, 1, true) then found = found + 1 end
+        end
+        if found >= math.floor(#words * 0.1) then
+            return tostring(item.id), item.name or tostring(item.id)
+        end
+    end
+    return nil, "not found"
+end
+
+gSearchBtn.MouseButton1Click:Connect(function()
+    local query = gSearchBox.Text:gsub("^%s*(.-)%s*$", "%1")
+    if query == "" then return end
+    gResultLbl.Text = "searching..."
+    gSearchBtn.Text = "..."
+    task.spawn(function()
+        local id, nameOrErr = searchGear(query)
+        gSearchBtn.Text = "Search"
+        if id then
+            currentGearId = id
+            gResultLbl.Text = nameOrErr .. " (" .. id .. ")"
+            gResultLbl.TextColor3 = Color3.fromRGB(80, 200, 120)
+        else
+            gResultLbl.Text = "error: " .. nameOrErr
+            gResultLbl.TextColor3 = Color3.fromRGB(200, 80, 80)
+            currentGearId = nil
+        end
+    end)
+end)
+
+gGearBtn.MouseButton1Click:Connect(function()
+    if currentGearId then
+        sayInChat(";gear me " .. currentGearId)
+    end
+end)
+
+gSaveBtn.MouseButton1Click:Connect(function()
+    if currentGearId then
+        local name = gResultLbl.Text:match("^(.+) %(") or currentGearId
+        table.insert(savedGears, { name = name, id = currentGearId })
+        addSavedGearRow(name, currentGearId)
+        gSaveBtn.Text = "Saved"
+        task.delay(1.5, function() gSaveBtn.Text = "Save" end)
+    end
+end)
+
+gearToggleBtn.MouseButton1Click:Connect(function()
+    showGear = not showGear
+    gearContainer.Visible = showGear
+    gearToggleBtn.Text = (showGear and "- Gear Searcher / Saver" or "+ Gear Searcher / Saver")
+    if showGear then
+        task.wait()
+        gearContainer.Size = UDim2.new(1, 0, 0, gList.AbsoluteContentSize.Y + 4)
+    end
+end)
 
 -- ==================
 -- MIC TAB
