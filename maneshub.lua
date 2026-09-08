@@ -2573,25 +2573,48 @@ local function addSavedGearRow(name, id)
     gearContainer.Size = UDim2.new(1, 0, 0, gList.AbsoluteContentSize.Y + 4)
 end
 
--- Searchfunc from Hyperion
+-- Gear search
+local MPS = game:GetService("MarketplaceService")
+
 local function searchGear(v)
     if type(v) ~= "string" or v == "" then return nil, "type a gear name" end
+    -- search via Roblox catalog using HttpGet through roproxy
     local ok, body = pcall(function()
-        return game:HttpGet("https://catalog.roproxy.com/v1/search/items/details?Category=11&Subcategory=5&Keyword=" .. HttpService:UrlEncode(v) .. "&Limit=30")
+        return game:HttpGet(
+            "https://catalog.roproxy.com/v1/search/items/details?Category=11&Subcategory=5&Keyword="
+            .. HttpService:UrlEncode(v) .. "&Limit=30"
+        )
     end)
-    if not ok or not body then return nil, "HTTP error" end
+    -- fallback: try games.roproxy.com endpoint
+    if not ok or not body then
+        ok, body = pcall(function()
+            return game:HttpGet(
+                "https://www.roblox.com/catalog/json?CatalogContext=2&Keyword="
+                .. HttpService:UrlEncode(v) .. "&Category=11&PageSize=10"
+            )
+        end)
+    end
+    if not ok or not body then return nil, "HTTP not available" end
     local ok2, d = pcall(function() return HttpService:JSONDecode(body).data end)
-    if not ok2 or not d then return nil, "parse error" end
+    if not ok2 or not d then
+        -- try alternate JSON shape
+        local ok3, d2 = pcall(function() return HttpService:JSONDecode(body) end)
+        if not ok3 or not d2 then return nil, "parse error" end
+        d = d2
+    end
     local words = {}
     for s in v:lower():gmatch("%S+") do words[#words+1] = s end
     for _, item in ipairs(d) do
-        local hay = ((item.name or "") .. " " .. (item.description or "")):lower()
+        local itemName = item.Name or item.name or ""
+        local itemDesc = item.Description or item.description or ""
+        local hay = (itemName .. " " .. itemDesc):lower()
         local found = 0
         for _, w in ipairs(words) do
             if hay:find(w, 1, true) then found = found + 1 end
         end
-        if found >= math.floor(#words * 0.1) then
-            return tostring(item.id), item.name or tostring(item.id)
+        if found >= math.max(1, math.floor(#words * 0.1)) then
+            local id = item.Id or item.id or item.AssetId or item.assetId
+            return tostring(id), itemName ~= "" and itemName or tostring(id)
         end
     end
     return nil, "not found"
