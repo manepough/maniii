@@ -38,6 +38,25 @@ local function sayInChat(text)
     end)()
 end
 
+local function makeBtn(parent, text, order, callback)
+    local btn = Instance.new("TextButton", parent)
+    btn.Size = UDim2.new(1, 0, 0, 30)
+    btn.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+    btn.BorderSizePixel = 0
+    btn.Font = Enum.Font.GothamBold
+    btn.TextSize = 11
+    btn.TextColor3 = Color3.fromRGB(200, 200, 200)
+    btn.Text = text
+    btn.LayoutOrder = order or 0
+    btn.ZIndex = 7
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 7)
+    local st = Instance.new("UIStroke", btn)
+    st.Color = Color3.fromRGB(45, 45, 45)
+    st.Thickness = 1
+    btn.MouseButton1Click:Connect(callback)
+    return btn
+end
+
 -- ScreenGui
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "ManesHub"
@@ -1704,25 +1723,6 @@ end)
 -- ==================
 -- SHARED HELPERS
 -- ==================
-local function makeBtn(parent, text, order, callback)
-    local btn = Instance.new("TextButton", parent)
-    btn.Size = UDim2.new(1, 0, 0, 30)
-    btn.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-    btn.BorderSizePixel = 0
-    btn.Font = Enum.Font.GothamBold
-    btn.TextSize = 11
-    btn.TextColor3 = Color3.fromRGB(200, 200, 200)
-    btn.Text = text
-    btn.LayoutOrder = order or 0
-    btn.ZIndex = 7
-    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 7)
-    local st = Instance.new("UIStroke", btn)
-    st.Color = Color3.fromRGB(45, 45, 45)
-    st.Thickness = 1
-    btn.MouseButton1Click:Connect(callback)
-    return btn
-end
-
 local function hasArkenstone()
     return player.Character and player.Character:FindFirstChild("The Arkenstone")
         or player.Backpack:FindFirstChild("The Arkenstone")
