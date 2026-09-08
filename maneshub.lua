@@ -2576,7 +2576,13 @@ end
 -- Searchfunc from Hyperion
 local function searchGear(v)
     if type(v) ~= "string" or v == "" then return nil, "type a gear name" end
-    local httpR = http and http.request or http_request or request or (syn and syn.request)
+    local httpR = (syn and syn.request)
+        or (http and http.request)
+        or http_request
+        or request
+        or (fluxus and fluxus.request)
+        or (Delta and Delta.request)
+        or (getgenv().request)
     if not httpR then return nil, "no http func" end
     local ok, r = pcall(function()
         return httpR({
@@ -2584,7 +2590,18 @@ local function searchGear(v)
             Method = "GET"
         })
     end)
-    if not ok or not r or r.StatusCode ~= 200 or not r.Body then return nil, "HTTP error" end
+    if not ok or not r then
+        -- fallback to roblox proxy alternative
+        local ok2, r2 = pcall(function()
+            return httpR({
+                Url = "https://www.roproxy.com/catalog/json?CatalogContext=2&Keyword=" .. HttpService:UrlEncode(v) .. "&Category=11&Subcategory=5&PageSize=30",
+                Method = "GET"
+            })
+        end)
+        if not ok2 or not r2 then return nil, "HTTP error" end
+        r = r2
+    end
+    if not r or r.StatusCode ~= 200 or not r.Body then return nil, "HTTP error" end
     local ok2, d = pcall(function() return HttpService:JSONDecode(r.Body).data end)
     if not ok2 or not d then return nil, "parse error" end
     local words = {}
@@ -2615,7 +2632,7 @@ gSearchBtn.MouseButton1Click:Connect(function()
             gResultLbl.Text = nameOrErr .. " (" .. id .. ")"
             gResultLbl.TextColor3 = Color3.fromRGB(80, 200, 120)
         else
-            gResultLbl.Text = "error: " .. nameOrErr
+            gResultLbl.Text = nameOrErr or "unknown error"
             gResultLbl.TextColor3 = Color3.fromRGB(200, 80, 80)
             currentGearId = nil
         end
