@@ -2576,33 +2576,11 @@ end
 -- Searchfunc from Hyperion
 local function searchGear(v)
     if type(v) ~= "string" or v == "" then return nil, "type a gear name" end
-    local httpR = (syn and syn.request)
-        or (http and http.request)
-        or http_request
-        or request
-        or (fluxus and fluxus.request)
-        or (Delta and Delta.request)
-        or (getgenv().request)
-    if not httpR then return nil, "no http func" end
-    local ok, r = pcall(function()
-        return httpR({
-            Url = "https://catalog.roproxy.com/v1/search/items/details?Category=11&Subcategory=5&Keyword=" .. HttpService:UrlEncode(v) .. "&Limit=30",
-            Method = "GET"
-        })
+    local ok, body = pcall(function()
+        return game:HttpGet("https://catalog.roproxy.com/v1/search/items/details?Category=11&Subcategory=5&Keyword=" .. HttpService:UrlEncode(v) .. "&Limit=30")
     end)
-    if not ok or not r then
-        -- fallback to roblox proxy alternative
-        local ok2, r2 = pcall(function()
-            return httpR({
-                Url = "https://www.roproxy.com/catalog/json?CatalogContext=2&Keyword=" .. HttpService:UrlEncode(v) .. "&Category=11&Subcategory=5&PageSize=30",
-                Method = "GET"
-            })
-        end)
-        if not ok2 or not r2 then return nil, "HTTP error" end
-        r = r2
-    end
-    if not r or r.StatusCode ~= 200 or not r.Body then return nil, "HTTP error" end
-    local ok2, d = pcall(function() return HttpService:JSONDecode(r.Body).data end)
+    if not ok or not body then return nil, "HTTP error" end
+    local ok2, d = pcall(function() return HttpService:JSONDecode(body).data end)
     if not ok2 or not d then return nil, "parse error" end
     local words = {}
     for s in v:lower():gmatch("%S+") do words[#words+1] = s end
