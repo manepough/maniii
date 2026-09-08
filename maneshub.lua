@@ -435,49 +435,33 @@ local function clearDetectConn(name)
     end
 end
 
--- Silent/hidden message sender
-makeLabel(detectTab, "send silent msg", 3)
-local silentTargetBox = Instance.new("TextBox", detectTab)
-silentTargetBox.Size = UDim2.new(1, 0, 0, 30)
-silentTargetBox.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-silentTargetBox.BorderSizePixel = 0
-silentTargetBox.Font = Enum.Font.Gotham
-silentTargetBox.TextSize = 10
-silentTargetBox.TextColor3 = Color3.fromRGB(190, 190, 190)
-silentTargetBox.PlaceholderText = "player name (e.g. john123)"
-silentTargetBox.PlaceholderColor3 = Color3.fromRGB(80, 80, 80)
-silentTargetBox.Text = ""
-silentTargetBox.LayoutOrder = 4
-silentTargetBox.ZIndex = 7
-Instance.new("UICorner", silentTargetBox).CornerRadius = UDim.new(0, 6)
-
-local silentMsgBox = Instance.new("TextBox", detectTab)
-silentMsgBox.Size = UDim2.new(1, 0, 0, 30)
-silentMsgBox.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-silentMsgBox.BorderSizePixel = 0
-silentMsgBox.Font = Enum.Font.Gotham
-silentMsgBox.TextSize = 10
-silentMsgBox.TextColor3 = Color3.fromRGB(190, 190, 190)
-silentMsgBox.PlaceholderText = "message to send"
-silentMsgBox.PlaceholderColor3 = Color3.fromRGB(80, 80, 80)
-silentMsgBox.Text = ""
-silentMsgBox.LayoutOrder = 5
-silentMsgBox.ZIndex = 7
-Instance.new("UICorner", silentMsgBox).CornerRadius = UDim.new(0, 6)
-
-makeBtn(detectTab, "Send Silent", 6, function()
-    local target = silentTargetBox.Text:gsub("^%s*(.-)%s*$", "%1")
-    local msg    = silentMsgBox.Text:gsub("^%s*(.-)%s*$", "%1")
-    if target ~= "" and msg ~= "" then
-        sayInChat(";" .. target .. " " .. msg)
-    end
+-- Silent/muted message detector
+makeToggle(detectTab, "Silent / Muted Detector", 3, function(state)
+    clearDetectConn("SilentDetect")
+    if not state then return end
+    local tcs2 = game:GetService("TextChatService")
+    detectConns["SilentDetect"] = tcs2.MessageReceived:Connect(function(mdata)
+        local src = mdata.TextSource
+        if not src then return end
+        local p = game:GetService("Players"):GetPlayerByUserId(src.UserId)
+        if not p or p == player then return end
+        local msg = mdata.Text or ""
+        if msg == "" then return end
+        local isSilent  = msg:sub(1,1) == ";"
+        local isMuted   = p:HasTag("Muted")
+        local isWhisper = mdata.TextChannel
+            and tostring(mdata.TextChannel.Name):find("RBXWhisper") ~= nil
+        if isSilent or isMuted or isWhisper then
+            sayInChat(p.Name .. ": " .. msg)
+        end
+    end)
 end)
 
-makeDivider(detectTab, 7)
+makeDivider(detectTab, 4)
 
 -- Grief detection
 local griefers = {}
-makeToggle(detectTab, "Grief Detection", 8, function(state)
+makeToggle(detectTab, "Grief Detection", 5, function(state)
     clearDetectConn("Grief")
     griefers = {}
     if not state then return end
@@ -536,7 +520,7 @@ end)
 
 -- Enlighten alarm
 local enlightenAlerted = {}
-makeToggle(detectTab, "Enlighten Alarm", 9, function(state)
+makeToggle(detectTab, "Enlighten Alarm", 6, function(state)
     clearDetectConn("Enlighten")
     enlightenAlerted = {}
     if not state then return end
@@ -559,7 +543,7 @@ end)
 -- Lag machine detector
 local buildCounts = {}
 local buildWindow = 3 -- seconds
-makeToggle(detectTab, "Lag Machine Detector", 10, function(state)
+makeToggle(detectTab, "Lag Machine Detector", 7, function(state)
     clearDetectConn("LagMachine")
     buildCounts = {}
     if not state then return end
