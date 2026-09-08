@@ -2583,7 +2583,7 @@ local function searchGear(v)
     if type(v) ~= "string" or v == "" then return nil, "type a gear name" end
     local httpFunc = (syn and syn.request) or http_request or request or (fluxus and fluxus.request)
     if not httpFunc then return nil, "no http func" end
-    local url = "https://catalog.roproxy.com/v1/search/items/details?Category=11&Subcategory=5&Keyword="
+    local url = "http://catalog.roproxy.com/v1/search/items/details?Category=11&Subcategory=5&Keyword="
         .. HttpService:UrlEncode(v) .. "&Limit=30"
     local ok, r = pcall(function()
         return httpFunc({ Url = url, Method = "GET" })
