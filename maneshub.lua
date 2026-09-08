@@ -2384,4 +2384,247 @@ openBtn.MouseButton1Click:Connect(function()
     openUI()
 end)
 
-print("ManesHub loaded. Tap M or press RightShift to open.")
+-- ==================
+-- ANTIS TAB
+-- ==================
+local antisTab = createTab("Antis")
+
+makeLabel(antisTab, "anti features", 1)
+makeDivider(antisTab, 2)
+
+local antiConns = {}
+local originalFallenHeight = workspace.FallenPartsDestroyHeight
+
+local function clearAntiConn(name)
+    if antiConns[name] then
+        pcall(function() antiConns[name]:Disconnect() end)
+        antiConns[name] = nil
+    end
+end
+
+local function getChar2() return player.Character end
+local function getHum2() local c = getChar2() return c and c:FindFirstChildOfClass("Humanoid") end
+local function getRoot2() local c = getChar2() return c and c:FindFirstChild("HumanoidRootPart") end
+
+local function breakVel2()
+    local zero = Vector3.zero
+    local endTime = tick() + 0.8
+    while tick() < endTime do
+        local char = getChar2()
+        if char then
+            for _, part in ipairs(char:GetChildren()) do
+                if part:IsA("BasePart") then
+                    part.AssemblyLinearVelocity = zero
+                    part.AssemblyAngularVelocity = zero
+                end
+            end
+        end
+        task.wait()
+    end
+end
+
+local function askUnstun2()
+    local hum = getHum2()
+    if hum then
+        hum.PlatformStand = false
+        hum.Sit = false
+        hum:ChangeState(Enum.HumanoidStateType.GettingUp)
+    end
+end
+
+-- Anti Drag
+makeToggle(antisTab, "Anti Drag", 3, function(state)
+    clearAntiConn("AntiDrag")
+    if state then
+        antiConns.AntiDrag = game:GetService("RunService").Heartbeat:Connect(function()
+            local char = getChar2()
+            if not char then return end
+            local Dragger = char:FindFirstChild("Dragger")
+            local hum = char:FindFirstChildOfClass("Humanoid")
+            if Dragger and hum then
+                pcall(function() Dragger.ResponseStyle = Enum.DragDetectorResponseStyle.Custom end)
+                if hum.PlatformStand then
+                    hum.PlatformStand = false
+                    hum.Sit = false
+                    hum:ChangeState(Enum.HumanoidStateType.GettingUp)
+                end
+            end
+        end)
+    end
+end)
+
+-- Anti Stun
+makeToggle(antisTab, "Anti Stun", 4, function(state)
+    clearAntiConn("AntiStun")
+    if state then
+        antiConns.AntiStun = game:GetService("RunService").Heartbeat:Connect(function()
+            local hum = getHum2()
+            if hum and hum.PlatformStand then askUnstun2() end
+        end)
+    end
+end)
+
+-- Anti Void
+makeToggle(antisTab, "Anti Void", 5, function(state)
+    clearAntiConn("AntiVoid")
+    if state then
+        workspace.FallenPartsDestroyHeight = -50000
+        antiConns.AntiVoid = game:GetService("RunService").Stepped:Connect(function()
+            local root = getRoot2()
+            if root and root.Position.Y < -100 then
+                root.CFrame = CFrame.new(0, 100, 0)
+                root.AssemblyLinearVelocity = Vector3.zero
+            end
+        end)
+    else
+        workspace.FallenPartsDestroyHeight = originalFallenHeight
+    end
+end)
+
+-- Anti Fling
+makeToggle(antisTab, "Anti Fling", 6, function(state)
+    clearAntiConn("AntiFling")
+    if state then
+        antiConns.AntiFling = game:GetService("RunService").Heartbeat:Connect(function()
+            local root = getRoot2()
+            if not root then return end
+            if root.AssemblyLinearVelocity.Magnitude > 200 then
+                root.AssemblyLinearVelocity = Vector3.zero
+                root.AssemblyAngularVelocity = Vector3.zero
+            end
+            local pos = root.Position
+            if math.abs(pos.X) > 10000 or math.abs(pos.Y) > 10000 or math.abs(pos.Z) > 10000 then
+                root.AssemblyLinearVelocity = Vector3.zero
+                player.Character:PivotTo(CFrame.new(0, 200, 0))
+                task.spawn(breakVel2)
+            end
+        end)
+    end
+end)
+
+-- Anti Freeze
+makeToggle(antisTab, "Anti Freeze", 7, function(state)
+    clearAntiConn("AntiFreeze")
+    if state then
+        local lastGoodCF = nil
+        antiConns.AntiFreeze = game:GetService("RunService").Heartbeat:Connect(function()
+            local char = getChar2()
+            local root = getRoot2()
+            local hum = getHum2()
+            if not char or not root or not hum or hum.Health <= 0 then return end
+            if not root.Anchored then lastGoodCF = root.CFrame end
+            local frozen = root.Anchored or (char:FindFirstChild("Torso") and char.Torso.Transparency == 1)
+            if workspace:FindFirstChild(player.Name) and workspace[player.Name]:FindFirstChild("Hielo") then frozen = true end
+            if frozen then
+                hum.Health = 0
+                if lastGoodCF then
+                    player.CharacterAdded:Once(function(newChar)
+                        task.wait(0.4)
+                        local newRoot = newChar:WaitForChild("HumanoidRootPart", 5)
+                        if newRoot then newRoot.CFrame = lastGoodCF end
+                    end)
+                end
+            end
+        end)
+    end
+end)
+
+-- Anti Jail
+makeToggle(antisTab, "Anti Jail", 8, function(state)
+    clearAntiConn("AntiJail")
+    if state then
+        antiConns.AntiJail = game:GetService("RunService").Heartbeat:Connect(function()
+            local char = getChar2()
+            if not char then return end
+            local jail = char:FindFirstChild("Jail")
+            if jail then
+                for _, part in ipairs(jail:GetDescendants()) do
+                    if part:IsA("BasePart") then
+                        part.CanCollide = false
+                        part.CanTouch = false
+                        part.CanQuery = false
+                        part.LocalTransparencyModifier = 1
+                    end
+                end
+            end
+            for _, obj in ipairs(workspace:GetDescendants()) do
+                local name = string.lower(obj.Name)
+                if name:find("jail") or name:find("cage") or name:find("prison") or name:find("cell") then
+                    if obj:IsA("BasePart") then
+                        obj.LocalTransparencyModifier = 1
+                        obj.CanCollide = false
+                    end
+                end
+            end
+        end)
+    end
+end)
+
+-- Anti Visual
+makeToggle(antisTab, "Anti Visual", 9, function(state)
+    clearAntiConn("AntiVisual")
+    if state then
+        local Lighting = game:GetService("Lighting")
+        local StarterGui = game:GetService("StarterGui")
+        antiConns.AntiVisual = game:GetService("RunService").Heartbeat:Connect(function()
+            local pg = player:WaitForChild("PlayerGui")
+            local blind = pg:FindFirstChild("Blind") or pg:FindFirstChild("BlindGUI")
+            if blind then blind.Enabled = false end
+            local ob = pg:FindFirstChild("OwnerBlinder")
+            if ob then ob:Destroy() end
+            for _, e in ipairs(Lighting:GetChildren()) do
+                if e:IsA("BlurEffect") or e:IsA("DepthOfFieldEffect") or e:IsA("ColorCorrectionEffect") or e:IsA("BloomEffect") or e:IsA("SunRaysEffect") then
+                    e.Enabled = false
+                end
+            end
+            if Lighting:FindFirstChild("Fog") then Lighting.Fog.Density = 0 end
+            local cam = workspace.CurrentCamera
+            local hum = getHum2()
+            if cam and hum then
+                cam.CameraType = Enum.CameraType.Custom
+                cam.CameraSubject = hum
+                if cam.FieldOfView ~= 70 then cam.FieldOfView = 70 end
+            end
+            pcall(function() StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, true) end)
+        end)
+    end
+end)
+
+-- Anti Gravity
+makeToggle(antisTab, "Anti Gravity", 10, function(state)
+    clearAntiConn("AntiGravity")
+    if state then
+        antiConns.AntiGravity = game:GetService("RunService").Heartbeat:Connect(function()
+            if player:GetAttribute("Flying") == true then return end
+            if workspace.Gravity ~= 196.2 then workspace.Gravity = 196.2 end
+        end)
+    end
+end)
+
+-- Anti Move / Force
+makeToggle(antisTab, "Anti Move / Force", 11, function(state)
+    clearAntiConn("AntiMove")
+    if state then
+        antiConns.AntiMove = game:GetService("RunService").Heartbeat:Connect(function()
+            local char = getChar2()
+            if not char then return end
+            for _, mover in ipairs(char:GetDescendants()) do
+                if not mover:FindFirstAncestorOfClass("Tool") and (
+                    mover:IsA("BodyVelocity") or mover:IsA("BodyAngularVelocity") or
+                    mover:IsA("BodyPosition") or mover:IsA("BodyGyro") or
+                    mover:IsA("LinearVelocity") or mover:IsA("AngularVelocity") or
+                    mover:IsA("VectorForce") or mover:IsA("AlignPosition") or
+                    mover:IsA("AlignOrientation")
+                ) then
+                    pcall(function() mover:Destroy() end)
+                end
+            end
+            local hum = getHum2()
+            if hum then
+                hum.PlatformStand = false
+                hum.Sit = false
+                hum.AutoRotate = true
+            end
+        end)
+    end
+end)
